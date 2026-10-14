@@ -34,3 +34,6 @@ Pods/
 *.pem
 *.p12
 Secrets.xcconfig
+
+# Python
+__pycache__/

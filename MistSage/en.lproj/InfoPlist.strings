@@ -1,0 +1,4 @@
+"CFBundleDisplayName" = "MistSage";
+"CFBundleName" = "MistSage";
+"NSPhotoLibraryUsageDescription" = "Used for your avatar and asset photos. Images sync to your account.";
+"NSPhotoLibraryAddUsageDescription" = "Used for your avatar and asset photos. Images sync to your account.";
