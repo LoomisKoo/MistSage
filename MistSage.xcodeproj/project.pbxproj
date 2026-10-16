@@ -438,6 +438,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = MistSage;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSHasLocalizedDisplayName = YES;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于设置头像和资产照片，图片会同步到你的账号。";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "用于设置头像和资产照片，图片会同步到你的账号。";
@@ -468,6 +469,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = MistSage;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSHasLocalizedDisplayName = YES;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于设置头像和资产照片，图片会同步到你的账号。";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "用于设置头像和资产照片，图片会同步到你的账号。";
