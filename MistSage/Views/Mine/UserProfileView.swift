@@ -274,7 +274,7 @@ private struct ProfileDecisionRow: View {
 
                 Spacer(minLength: 0)
 
-                Text(item.status.localizedName)
+                Text(item.status.badgeName)
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(statusFg)
                     .padding(.horizontal, 8)

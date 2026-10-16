@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 某一类建议意见列表（从建议结果点进）
+/// 某一类建议意见列表（从结果点进）
 struct SuggestionCommentsView: View {
     let title: String
     let votes: [ReviewVote]

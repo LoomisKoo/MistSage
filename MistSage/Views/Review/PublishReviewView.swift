@@ -13,6 +13,9 @@ struct PublishReviewView: View {
     @State private var draftNickname = ""
     @State private var confirmingRegion = false
     @State private var showRegionError = false
+    @State private var coolOff: CoolOffPeriod = .day1
+    /// 手动选过就不再随金额自动变
+    @State private var coolOffPicked = false
 
     private var money: Double { Double(moneyText) ?? 0 }
     private var needsNickname: Bool { !settings.hasNickname }
@@ -39,7 +42,22 @@ struct PublishReviewView: View {
                     topicPicker
                 }
 
-                MoneyField(title: "涉及金额（元）", text: $moneyText)
+                MoneyField(title: "涉及金额（\(Theme.currencyUnit)）", text: $moneyText)
+                    .onChange(of: moneyText) { _, _ in
+                        guard !coolOffPicked else { return }
+                        withAnimation(.easeOut(duration: 0.16)) {
+                            coolOff = CoolOffPeriod.suggested(for: money)
+                        }
+                    }
+
+                field("冷静期") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        coolOffPicker
+                        Text("冷静期内不能拍板，按金额自动推荐，可手动改。")
+                            .font(.caption)
+                            .foregroundStyle(Theme.muted)
+                    }
+                }
 
                 field("为什么纠结") {
                     TextField(
@@ -103,6 +121,25 @@ struct PublishReviewView: View {
         }
     }
 
+    private var coolOffPicker: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
+            ForEach(CoolOffPeriod.allCases) { p in
+                Button {
+                    coolOffPicked = true
+                    withAnimation(.easeOut(duration: 0.16)) { coolOff = p }
+                } label: {
+                    Text(p.label)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .foregroundStyle(coolOff == p ? Color.white : Theme.inkSoft)
+                        .background(Capsule().fill(coolOff == p ? Theme.accent : Theme.paperDeep))
+                }
+                .buttonStyle(PressScaleButtonStyle())
+            }
+        }
+    }
+
     private func field<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             FieldLabel(text: title)
@@ -141,6 +178,7 @@ struct PublishReviewView: View {
             constraints: "",
             status: .cooling,
             topic: topic,
+            coolHours: coolOff.hours,
             isPublicOnPlaza: true
         )
         modelContext.insert(request)

@@ -70,6 +70,12 @@ struct SettingsView: View {
                 SoftPanel(padding: 4) {
                     VStack(spacing: 0) {
                         NavigationLink {
+                            LegalDocumentView(document: .support)
+                        } label: {
+                            settingsRow("支持与帮助", icon: "questionmark.circle")
+                        }
+                        Divider().padding(.leading, 52)
+                        NavigationLink {
                             LegalDocumentView(document: .privacy)
                         } label: {
                             settingsRow("隐私政策", icon: "hand.raised")
@@ -254,13 +260,13 @@ private struct TimeCostSheet: View {
                 case .manual:
                     labeledField("直接填写 1 小时值多少钱", text: $hourlyText) { applyHourly() }
                 case .monthly:
-                    labeledField("每月收入（元）", text: $monthlyText) { applyMonthly() }
+                    labeledField("每月收入（\(Theme.currencyUnit)）", text: $monthlyText) { applyMonthly() }
                     labeledField("每天大约工作几小时", text: $hoursText) { applyHours() }
                     Stepper("每月大约工作 \(settings.workDaysPerMonth) 天", value: $settings.workDaysPerMonth, in: 8...31)
                         .font(.subheadline)
                         .foregroundStyle(Theme.ink)
                 case .daily:
-                    labeledField("每天收入（元）", text: $dailyText) { applyDaily() }
+                    labeledField("每天收入（\(Theme.currencyUnit)）", text: $dailyText) { applyDaily() }
                     labeledField("每天大约工作几小时", text: $hoursText) { applyHours() }
                 }
             }

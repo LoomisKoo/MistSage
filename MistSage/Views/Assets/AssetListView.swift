@@ -35,19 +35,21 @@ struct AssetListView: View {
                             }
                         }
                         .swipeActions(edge: .leading) {
-                            Button {
-                                item.markUsed()
-                                try? modelContext.save()
-                            } label: {
-                                Label("用了", systemImage: "plus.circle")
+                            if item.kind.tracksUsage {
+                                Button {
+                                    item.markUsed()
+                                    try? modelContext.save()
+                                } label: {
+                                    Label("用了", systemImage: "plus.circle")
+                                }
+                                .tint(Theme.accent)
                             }
-                            .tint(Theme.accent)
                         }
                     }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .padding(.bottom, 56)
+                .contentMargins(.bottom, 84, for: .scrollContent)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -59,15 +61,15 @@ struct AssetCard: View {
     let item: AssetItem
 
     var body: some View {
-        SoftPanel(padding: 16) {
-            HStack(spacing: 14) {
+        SoftPanel(padding: 10) {
+            HStack(spacing: 12) {
                 Group {
                     if let photo = item.photoImage {
                         Image(uiImage: photo)
                             .resizable()
                             .scaledToFill()
                     } else {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        Rectangle()
                             .fill(item.isIdle ? Theme.warnSoft : Theme.accentSoft)
                             .overlay(
                                 Image(systemName: item.resolvedIcon)
@@ -76,22 +78,17 @@ struct AssetCard: View {
                             )
                     }
                 }
-                .frame(width: 52, height: 52)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .frame(width: 56, height: 56)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text(item.name)
                             .font(.body.weight(.semibold))
                             .foregroundStyle(Theme.ink)
                             .lineLimit(1)
                         Spacer(minLength: 8)
-                        Text(item.kind.localizedName)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Theme.accentDeep)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(Theme.accentSoft))
+                        MetaTag(text: item.kind.localizedName, fg: Theme.accentDeep, bg: Theme.accentSoft)
                     }
 
                     HStack(spacing: 10) {
@@ -106,22 +103,33 @@ struct AssetCard: View {
                                 .foregroundStyle(Theme.inkSoft)
                                 .monospacedDigit()
                         }
-                        if let avg = item.avgDaysPerUse {
-                            Text(String(format: L("%.0f天/次"), avg))
+                        if !item.kind.tracksUsage {
+                            Text("已收藏 \(item.ownedDays) 天")
                                 .font(.caption)
                                 .foregroundStyle(Theme.muted)
                         } else {
-                            Text("用过 \(item.useCount) 次")
-                                .font(.caption)
-                                .foregroundStyle(Theme.muted)
-                        }
-                        if item.isIdle {
-                            Text("闲置 \(item.idleDays) 天")
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(Theme.warn)
+                            if let avg = item.avgDaysPerUse {
+                                Text(String(format: L("%.0f天/次"), avg))
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.muted)
+                            } else {
+                                Text("用过 \(item.useCount) 次")
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.muted)
+                            }
+                            if item.needsRestock {
+                                Text(item.status.localizedName)
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(Theme.warn)
+                            } else if item.isIdle {
+                                Text("闲置 \(item.idleDays) 天")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(Theme.warn)
+                            }
                         }
                     }
                 }
+                .padding(.trailing, 6)
             }
         }
     }

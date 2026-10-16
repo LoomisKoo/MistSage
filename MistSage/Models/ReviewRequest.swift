@@ -12,6 +12,41 @@ enum ReviewStatus: String, Codable, CaseIterable, Identifiable {
     var isFinal: Bool {
         self == .decidedDo || self == .decidedSkip
     }
+
+    /// 列表标签用的短文案
+    var badgeName: String {
+        switch self {
+        case .decidedDo: return L("已拍板 · 做")
+        case .decidedSkip: return L("已拍板 · 不做")
+        case .pending: return L("待拍板")
+        case .cooling: return localizedName
+        }
+    }
+}
+
+enum CoolOffPeriod: Int, CaseIterable, Identifiable {
+    case hour1 = 1
+    case hour6 = 6
+    case day1 = 24
+    case day3 = 72
+    case day7 = 168
+    case day30 = 720
+
+    var id: Int { rawValue }
+    var hours: Int { rawValue }
+
+    var label: String { Theme.remaining(minutes: hours * 60) }
+
+    /// 按金额推荐；30 天只能手动选
+    static func suggested(for money: Double) -> CoolOffPeriod {
+        let t: [Double] = Theme.usesCNY ? [100, 500, 3000, 10000] : [15, 70, 400, 1500]
+        guard money > 0 else { return .day1 }
+        if money < t[0] { return .hour1 }
+        if money < t[1] { return .hour6 }
+        if money < t[2] { return .day1 }
+        if money < t[3] { return .day3 }
+        return .day7
+    }
 }
 
 enum ReviewSuggestion: String, Codable, CaseIterable, Identifiable {
@@ -21,7 +56,19 @@ enum ReviewSuggestion: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// 与最终裁定是否一致（缓一缓不算采纳）
+    /// 列表里的短文案：不加「建议」前缀
+    var shortName: String {
+        switch self {
+        case .doIt: return L("做")
+        case .wait: return L("缓一缓")
+        case .skip: return L("不做")
+        }
+    }
+
+    /// 新建议只能二选一；wait 仅为兼容旧数据保留
+    static let selectable: [ReviewSuggestion] = [.doIt, .skip]
+
+    /// 与最终拍板是否一致（缓一缓不算采纳）
     func matchesFinal(_ status: ReviewStatus) -> Bool {
         switch status {
         case .decidedDo: return self == .doIt
@@ -108,12 +155,18 @@ final class ReviewRequest {
 
     var isClosed: Bool { status.isFinal }
 
+    /// 冷静期结束 7 天还没拍板
+    var isOverdue: Bool {
+        guard !isClosed, let coolUntil else { return false }
+        return Date() >= coolUntil.addingTimeInterval(7 * 24 * 3600)
+    }
+
     func timeCost(hourlyRate: Double) -> Double {
         guard hourlyRate > 0, minutes > 0 else { return 0 }
         return hourlyRate * Double(minutes) / 60.0
     }
 
-    /// 发起人裁定：锁定结果，仍留在广场供他人参考
+    /// 发起人拍板：锁定结果，仍留在广场供他人参考
     func finalize(as newStatus: ReviewStatus) {
         guard newStatus.isFinal, !isClosed else { return }
         status = newStatus

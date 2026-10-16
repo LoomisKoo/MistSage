@@ -3,9 +3,9 @@ import SwiftData
 
 struct ReviewDetailView: View {
     @Bindable var item: ReviewRequest
-    /// 从个人主页进入时只读，不可编辑/裁定/投票
+    /// 从个人主页进入时只读，不可编辑/拍板/投票
     var readOnly: Bool = false
-    /// 仅从「决策」页进入时为 true：可删除、裁定做不做
+    /// 仅从「决策」页进入时为 true：可删除、拍板做不做
     var canManage: Bool = false
 
     @Environment(\.modelContext) private var modelContext
@@ -52,13 +52,6 @@ struct ReviewDetailView: View {
             VStack(alignment: .leading, spacing: 0) {
                 headerBlock
                     .padding(.bottom, 28)
-
-                if showOwnerActions, item.isClosed {
-                    Text("已裁定 · \(item.status.localizedName)")
-                        .font(.caption)
-                        .foregroundStyle(Theme.muted)
-                        .padding(.bottom, 28)
-                }
 
                 if votesForItem.isEmpty {
                     emptySuggestions
@@ -123,17 +116,32 @@ struct ReviewDetailView: View {
             Text("相关建议也会一并删除，不可恢复。")
         }
         .safeAreaInset(edge: .bottom) {
-            if showBottomDecideBar {
+            if showBottomDecideBar, item.isCooling, let coolUntil = item.coolUntil {
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    let minutes = max(1, Int(ceil(coolUntil.timeIntervalSince(context.date) / 60)))
+                    Text("冷静中 · 剩 \(Theme.remaining(minutes: minutes))")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.muted)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Theme.paperDeep)
+                        )
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+            } else if showBottomDecideBar {
                 HStack(spacing: 12) {
                     decideBarButton(
-                        title: "决定去做",
+                        title: "拍板 · 做",
                         foreground: Theme.accentDeep,
                         background: Theme.accentSoft
                     ) {
                         pendingDecision = .decidedDo
                     }
                     decideBarButton(
-                        title: "决定不做",
+                        title: "拍板 · 不做",
                         foreground: Theme.warn,
                         background: Theme.warnSoft
                     ) {
@@ -142,7 +150,6 @@ struct ReviewDetailView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 12)
-                .background(.ultraThinMaterial)
             } else if canSuggest {
                 Button {
                     if cloud.canWrite {
@@ -164,7 +171,6 @@ struct ReviewDetailView: View {
                 .buttonStyle(PressScaleButtonStyle())
                 .padding(.horizontal, 20)
                 .padding(.vertical, 12)
-                .background(.ultraThinMaterial)
             }
         }
         .sheet(isPresented: $showGiveSuggestion) {
@@ -175,7 +181,7 @@ struct ReviewDetailView: View {
         }
         .iCloudRequiredAlert(isPresented: $showICloudHint)
         .alert(
-            pendingDecision == .decidedDo ? "确认决定去做？" : "确认决定不做？",
+            pendingDecision == .decidedDo ? "确认拍板 · 做？" : "确认拍板 · 不做？",
             isPresented: Binding(
                 get: { pendingDecision != nil },
                 set: { if !$0 { pendingDecision = nil } }
@@ -190,13 +196,13 @@ struct ReviewDetailView: View {
                 }
                 ModelSave.commit(
                     modelContext,
-                    successMessage: pendingDecision == .decidedDo ? "已决定去做" : "已决定不做"
+                    successMessage: pendingDecision == .decidedDo ? "已拍板 · 做" : "已拍板 · 不做"
                 )
                 self.pendingDecision = nil
             }
             Button("取消", role: .cancel) { pendingDecision = nil }
         } message: {
-            Text("裁定后不可再改。仍会留在广场，方便别人参考评论与结果。与最终决定一致的建议会记为「被采纳」。")
+            Text("拍板后不可再改。仍会留在广场，方便别人参考评论与结果。与最终决定一致的建议会记为「被采纳」。")
         }
     }
 
@@ -220,20 +226,39 @@ struct ReviewDetailView: View {
         }
     }
 
-    /// 次要信息：一条弱文案，不跟标题抢注意力
+    /// 类型 / 状态用小标签，金额另起一行弱文案
     private var metaLine: some View {
-        HStack(spacing: 0) {
-            Text(item.topic.localizedName)
-            Text(" · ")
-            Text(item.status.localizedName)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                MetaTag(text: item.topic.localizedName, fg: Theme.inkSoft, bg: Theme.paperDeep)
+                MetaTag(text: item.status.badgeName, fg: statusFg, bg: statusBg)
+                Spacer(minLength: 0)
+            }
             if item.money > 0 {
-                Text(" · ")
                 Text(Theme.money(item.money))
+                    .font(.caption)
+                    .foregroundStyle(Theme.muted)
                     .monospacedDigit()
             }
         }
-        .font(.caption)
-        .foregroundStyle(Theme.muted)
+    }
+
+    private var statusFg: Color {
+        if item.isOverdue { return Theme.warn }
+        switch item.status {
+        case .decidedSkip: return Theme.accentDeep
+        case .decidedDo: return Theme.warn
+        default: return Theme.inkSoft
+        }
+    }
+
+    private var statusBg: Color {
+        if item.isOverdue { return Theme.warnSoft }
+        switch item.status {
+        case .decidedSkip: return Theme.accentSoft
+        case .decidedDo: return Theme.warnSoft
+        default: return Theme.paperDeep
+        }
     }
 
     private var emptySuggestions: some View {
@@ -245,7 +270,7 @@ struct ReviewDetailView: View {
             Text("还没有人给出建议")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(Theme.inkSoft)
-            Text(item.isMine ? LocalizedStringKey("冷静期过后，别人的建议会出现在这里。") : LocalizedStringKey("成为第一个给建议的人吧。"))
+            Text(item.isMine ? LocalizedStringKey("别人的建议会出现在这里。") : LocalizedStringKey("成为第一个给建议的人吧。"))
                 .font(.caption)
                 .foregroundStyle(Theme.muted)
                 .multilineTextAlignment(.center)
@@ -261,6 +286,11 @@ struct ReviewDetailView: View {
         return mine + others
     }
 
+    /// 旧帖里有人选过「缓一缓」才显示这一行
+    private var resultOptions: [ReviewSuggestion] {
+        (tally[.wait] ?? 0) > 0 ? [.doIt, .wait, .skip] : ReviewSuggestion.selectable
+    }
+
     private var resultsBlock: some View {
         VStack(alignment: .leading, spacing: 12) {
             Rectangle()
@@ -269,7 +299,7 @@ struct ReviewDetailView: View {
                 .padding(.bottom, 6)
 
             HStack(alignment: .firstTextBaseline) {
-                Text("建议结果")
+                Text("结果")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.muted)
                 Spacer()
@@ -280,18 +310,17 @@ struct ReviewDetailView: View {
 
             let total = max(votesForItem.count, 1)
             VStack(spacing: 8) {
-                ForEach(ReviewSuggestion.allCases) { s in
+                ForEach(resultOptions) { s in
                     let count = tally[s] ?? 0
                     let ratio = Double(count) / Double(total)
                     let filtered = votesForItem.filter { $0.suggestion == s }
                     NavigationLink {
-                        SuggestionCommentsView(title: s.localizedName, votes: filtered, review: item)
+                        SuggestionCommentsView(title: s.shortName, votes: filtered, review: item)
                     } label: {
                         resultRow(suggestion: s, count: count, ratio: ratio)
                     }
                     .buttonStyle(PressScaleButtonStyle(pressedScale: 0.98))
                     .disabled(count == 0)
-                    .opacity(count == 0 ? 0.45 : 1)
                 }
             }
         }
@@ -300,16 +329,14 @@ struct ReviewDetailView: View {
     private func resultRow(suggestion s: ReviewSuggestion, count: Int, ratio: Double) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(s.localizedName)
+                Text("\(s.shortName) (\(count))")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                 Spacer()
-                Text("\(count) 人")
-                    .font(.system(.subheadline, design: .rounded).weight(.bold))
-                    .foregroundStyle(s.tagForeground)
                 Text(String(format: "%.0f%%", ratio * 100))
                     .font(.caption)
                     .foregroundStyle(Theme.muted)
+                    .monospacedDigit()
                     .frame(width: 40, alignment: .trailing)
                 if count > 0 {
                     Image(systemName: "chevron.right")
@@ -336,7 +363,7 @@ struct ReviewDetailView: View {
 
     private var commentsBlock: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("全部建议")
+            Text("建议")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.muted)
 
@@ -426,7 +453,7 @@ struct VoteCommentRow: View {
                                 .background(Capsule().fill(Theme.accentDeep))
                         }
                         Spacer(minLength: 0)
-                        Text(vote.suggestion.localizedName)
+                        Text(vote.suggestion.shortName)
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(vote.suggestion.tagForeground)
                             .padding(.horizontal, 8)

@@ -51,3 +51,22 @@ struct SoftPanel<Content: View>: View {
             )
     }
 }
+
+/// 类型 / 状态这类小标签：圆角矩形底色
+struct MetaTag: View {
+    let text: String
+    var fg: Color = Theme.inkSoft
+    var bg: Color = Theme.paperDeep
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(fg)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(bg)
+            )
+    }
+}

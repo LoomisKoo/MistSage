@@ -27,7 +27,7 @@ struct AddDecisionView: View {
     }
 
     private var moneyFieldTitle: LocalizedStringKey {
-        kind == .did ? "花了多少（元）" : "省了多少（元）"
+        kind == .did ? "花了多少（\(Theme.currencyUnit)）" : "省了多少（\(Theme.currencyUnit)）"
     }
 
     private var kindHint: LocalizedStringKey {
@@ -35,23 +35,24 @@ struct AddDecisionView: View {
     }
 
     private var topicGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-            ForEach(DecisionTopic.allCases) { item in
-                Button {
-                    withAnimation(.easeOut(duration: 0.16)) { topic = item }
-                } label: {
-                    Text(item.localizedName)
-                        .font(.caption.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .foregroundStyle(topic == item ? Color.white : Theme.inkSoft)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(topic == item ? Theme.accent : Theme.paperDeep)
-                        )
+        Menu {
+            Picker("类型", selection: $topic.animation(.easeOut(duration: 0.16))) {
+                ForEach(DecisionTopic.allCases) { item in
+                    Text(item.localizedName).tag(item)
                 }
-                .buttonStyle(PressScaleButtonStyle())
             }
+        } label: {
+            HStack {
+                Text(topic.localizedName)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.muted)
+            }
+            .contentShape(Rectangle())
+            .fieldBox()
         }
     }
 

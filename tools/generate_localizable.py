@@ -123,6 +123,7 @@ EN: dict[str, str] = {
     "黑名单": "Block list",
     "隐私政策": "Privacy Policy",
     "用户协议": "Terms of Use",
+    "支持与帮助": "Help & Support",
     "关于雾中仙": "About MistSage",
     "纠结征求建议走决策·待决，小事直接记走决策·已决，别人的纠结在广场，物品在资产。": "Big dilemmas: Decisions → Pending → ask the Plaza. Small calls: Decisions → Settled. Others’ threads live on the Plaza; things live in Assets.",
     "版本 0.1.0": "Version 0.1.0",

@@ -18,7 +18,32 @@ struct DecisionHubView: View {
     @State private var segment: DecisionHubSegment = .pending
 
     private var mineReviews: [ReviewRequest] {
-        reviews.filter(\.isMine)
+        reviews.filter { $0.isMine && !$0.isClosed }
+    }
+
+    private enum SettledItem: Identifiable {
+        case record(DecisionRecord)
+        case review(ReviewRequest)
+
+        var id: UUID {
+            switch self {
+            case .record(let r): return r.id
+            case .review(let r): return r.id
+            }
+        }
+
+        var date: Date {
+            switch self {
+            case .record(let r): return r.createdAt
+            case .review(let r): return r.decidedAt ?? r.createdAt
+            }
+        }
+    }
+
+    /// 直接记录 + 已有结论的征求建议，按时间倒序
+    private var settledItems: [SettledItem] {
+        let closed = reviews.filter { $0.isMine && $0.isClosed }.map(SettledItem.review)
+        return (decisions.map(SettledItem.record) + closed).sorted { $0.date > $1.date }
     }
 
     var body: some View {
@@ -81,13 +106,13 @@ struct DecisionHubView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .padding(.bottom, 56)
+            .contentMargins(.bottom, 84, for: .scrollContent)
         }
     }
 
     @ViewBuilder
     private var settledList: some View {
-        if decisions.isEmpty {
+        if settledItems.isEmpty {
             EmptyHint(
                 systemImage: "square.and.pencil",
                 title: "还没有已决记录",
@@ -96,11 +121,22 @@ struct DecisionHubView: View {
             .frame(maxHeight: .infinity)
         } else {
             List {
-                ForEach(decisions, id: \.id) { record in
-                    NavigationLink {
-                        DecisionDetailView(record: record)
-                    } label: {
-                        DecisionRow(record: record, hourlyRate: settings.hourlyRate)
+                ForEach(settledItems) { entry in
+                    Group {
+                        switch entry {
+                        case .record(let record):
+                            NavigationLink {
+                                DecisionDetailView(record: record)
+                            } label: {
+                                DecisionRow(record: record, hourlyRate: settings.hourlyRate)
+                            }
+                        case .review(let item):
+                            NavigationLink {
+                                ReviewDetailView(item: item, canManage: true)
+                            } label: {
+                                ReviewRow(item: item, hourlyRate: settings.hourlyRate, showAuthor: false)
+                            }
+                        }
                     }
                     .navigationLinkIndicatorVisibility(.hidden)
                     .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
@@ -108,8 +144,13 @@ struct DecisionHubView: View {
                     .listRowBackground(Color.clear)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            modelContext.deleteSynced(record)
-                            try? modelContext.save()
+                            switch entry {
+                            case .record(let record):
+                                modelContext.deleteSynced(record)
+                                try? modelContext.save()
+                            case .review(let item):
+                                deleteReview(item)
+                            }
                         } label: {
                             Label("删除", systemImage: "trash")
                         }
@@ -118,7 +159,7 @@ struct DecisionHubView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .padding(.bottom, 56)
+            .contentMargins(.bottom, 84, for: .scrollContent)
         }
     }
 

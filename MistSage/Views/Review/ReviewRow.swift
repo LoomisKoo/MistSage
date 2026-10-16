@@ -74,12 +74,7 @@ struct ReviewRow: View {
 
             HStack(spacing: 8) {
                 statusBadge
-                Text(item.topic.localizedName)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Theme.inkSoft)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(Theme.paperDeep))
+                MetaTag(text: item.topic.localizedName)
                 if item.money > 0 {
                     Text(Theme.money(item.money))
                         .font(.caption.weight(.semibold))
@@ -95,15 +90,11 @@ struct ReviewRow: View {
     }
 
     private var statusBadge: some View {
-        Text(item.status.localizedName)
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(statusFg)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Capsule().fill(statusBg))
+        MetaTag(text: item.status.badgeName, fg: statusFg, bg: statusBg)
     }
 
     private var statusFg: Color {
+        if item.isOverdue { return Theme.warn }
         switch item.status {
         case .decidedSkip: return Theme.accentDeep
         case .decidedDo: return Theme.warn
@@ -112,6 +103,7 @@ struct ReviewRow: View {
     }
 
     private var statusBg: Color {
+        if item.isOverdue { return Theme.warnSoft }
         switch item.status {
         case .decidedSkip: return Theme.accentSoft
         case .decidedDo: return Theme.warnSoft

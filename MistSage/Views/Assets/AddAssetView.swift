@@ -13,9 +13,7 @@ struct AddAssetView: View {
     @State private var useCountText = "0"
     @State private var kind: AssetKind = .durable
     @State private var status: AssetStockStatus = .plenty
-    @State private var iconName = AssetIconOption.cube.rawValue
     @State private var isPublic = false
-    @State private var showIconPicker = false
     @State private var showLibrary = false
     @State private var photos: [AssetPhotoDraft] = []
     @State private var acquiredAt = Date()
@@ -35,29 +33,14 @@ struct AddAssetView: View {
             VStack(alignment: .leading, spacing: 20) {
                 photoBlock
 
-                HStack(spacing: 14) {
-                    Button { showIconPicker = true } label: {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Theme.accentSoft)
-                            .frame(width: 52, height: 52)
-                            .overlay(
-                                Image(systemName: iconName)
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(Theme.accent)
-                            )
-                    }
-                    .buttonStyle(PressScaleButtonStyle())
-                    .accessibilityLabel("选择图标")
-
-                    TextField(
-                        "",
-                        text: $name,
-                        prompt: Text("例如 iPhone").foregroundStyle(Theme.placeholder)
-                    )
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                    .fieldBox()
-                }
+                TextField(
+                    "",
+                    text: $name,
+                    prompt: Text("例如 iPhone").foregroundStyle(Theme.placeholder)
+                )
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.ink)
+                .fieldBox()
 
                 TextField(
                     "",
@@ -69,47 +52,54 @@ struct AddAssetView: View {
                 .foregroundStyle(Theme.ink)
                 .fieldBox()
 
-                MoneyField(title: "价值（元）", text: $priceText)
+                MoneyField(title: "价值（\(Theme.currencyUnit)）", text: $priceText)
 
                 VStack(alignment: .leading, spacing: 10) {
                     FieldLabel(text: "资产类型")
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                        ForEach(AssetKind.allCases) { k in
-                            Button {
-                                withAnimation(.easeOut(duration: 0.16)) { kind = k }
-                            } label: {
-                                Text(k.localizedName)
-                                    .font(.subheadline.weight(.semibold))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .foregroundStyle(kind == k ? Color.white : Theme.inkSoft)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                            .fill(kind == k ? Theme.accent : Theme.paperDeep)
-                                    )
+                    Menu {
+                        Picker("资产类型", selection: $kind.animation(.easeOut(duration: 0.16))) {
+                            ForEach(AssetKind.allCases) { k in
+                                Text(k.localizedName).tag(k)
                             }
-                            .buttonStyle(PressScaleButtonStyle())
                         }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: kind.symbol)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Theme.accent)
+                                .frame(width: 22)
+                            Text(kind.localizedName)
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(Theme.ink)
+                            Spacer()
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(Theme.muted)
+                        }
+                        .contentShape(Rectangle())
+                        .fieldBox()
                     }
                     Text(kind.hint)
                         .font(.caption)
                         .foregroundStyle(Theme.muted)
                 }
 
-                VStack(alignment: .leading, spacing: 10) {
-                    FieldLabel(text: "已用次数（可选）")
-                    TextField("0", text: $useCountText)
-                        .keyboardType(.numberPad)
-                        .font(.system(.title3, design: .rounded).weight(.semibold))
-                        .foregroundStyle(Theme.ink)
-                        .fieldBox()
-                        .onChange(of: useCountText) { _, new in
-                            let digits = new.filter(\.isNumber)
-                            if digits != new { useCountText = digits }
-                        }
-                    Text("用来算「单次成本」和「平均几天用一次」。平时点详情里的「用了一次」即可累加。")
-                        .font(.caption)
-                        .foregroundStyle(Theme.muted)
+                if kind.tracksUsage {
+                    VStack(alignment: .leading, spacing: 10) {
+                        FieldLabel(text: "已用次数（可选）")
+                        TextField("0", text: $useCountText)
+                            .keyboardType(.numberPad)
+                            .font(.system(.title3, design: .rounded).weight(.semibold))
+                            .foregroundStyle(Theme.ink)
+                            .fieldBox()
+                            .onChange(of: useCountText) { _, new in
+                                let digits = new.filter(\.isNumber)
+                                if digits != new { useCountText = digits }
+                            }
+                        Text("用来算「单次成本」和「平均几天用一次」。平时点详情里的「用了一次」即可累加。")
+                            .font(.caption)
+                            .foregroundStyle(Theme.muted)
+                    }
                 }
 
                 if kind.tracksStock {
@@ -195,13 +185,6 @@ struct AddAssetView: View {
         }
         .safeAreaInset(edge: .bottom) {
             SheetBottomBar(title: "保存", enabled: canSave, action: save)
-        }
-        .sheet(isPresented: $showIconPicker) {
-            NavigationStack {
-                IconPickerSheet(symbol: $iconName)
-            }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showLibrary) {
             MultiPhotoLibraryPicker(limit: remainingPhotoSlots) { images in
@@ -310,7 +293,6 @@ struct AddAssetView: View {
         useCountText = "\(item.useCount)"
         kind = item.kind
         status = item.status
-        iconName = item.resolvedIcon
         isPublic = item.isPublic
         acquiredAt = item.purchasedAt
         setAcquiredAt = true
@@ -324,10 +306,9 @@ struct AddAssetView: View {
             item.name = trimmed
             item.summary = summary.trimmingCharacters(in: .whitespacesAndNewlines)
             item.price = price
-            item.useCount = max(0, useCount)
+            item.useCount = kind.tracksUsage ? max(0, useCount) : 0
             item.kind = kind
             item.status = kind.tracksStock ? status : .plenty
-            item.iconName = iconName
             item.isPublic = isPublic
             item.purchasedAt = when
             if useCount > 0 { item.lastUsedAt = item.lastUsedAt ?? .now }
@@ -339,10 +320,9 @@ struct AddAssetView: View {
                 name: trimmed,
                 summary: summary.trimmingCharacters(in: .whitespacesAndNewlines),
                 price: price,
-                useCount: max(0, useCount),
+                useCount: kind.tracksUsage ? max(0, useCount) : 0,
                 status: kind.tracksStock ? status : .plenty,
                 kind: kind,
-                iconName: iconName,
                 isPublic: isPublic,
                 purchasedAt: when,
                 lastUsedAt: useCount > 0 ? .now : nil
@@ -352,27 +332,5 @@ struct AddAssetView: View {
             ModelSave.commit(modelContext, successMessage: "资产已登记")
         }
         dismiss()
-    }
-}
-
-struct IconPickerSheet: View {
-    @Binding var symbol: String
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        ScrollView {
-            IconGridPicker(symbol: $symbol)
-                .padding(20)
-        }
-        .background(AtmosphereBackground())
-        .navigationTitle("选择图标")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("完成") { dismiss() }
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Theme.accent)
-            }
-        }
     }
 }

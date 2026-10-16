@@ -4,6 +4,7 @@ import WebKit
 enum LegalDocument: String, Identifiable {
     case privacy
     case terms
+    case support
 
     var id: String { rawValue }
 
@@ -11,6 +12,7 @@ enum LegalDocument: String, Identifiable {
         switch self {
         case .privacy: return L("隐私政策")
         case .terms: return L("用户协议")
+        case .support: return L("支持与帮助")
         }
     }
 
@@ -43,6 +45,7 @@ struct LegalWebView: UIViewRepresentable {
         view.isOpaque = false
         view.backgroundColor = .clear
         view.allowsBackForwardNavigationGestures = true
+        view.navigationDelegate = context.coordinator
         context.coordinator.load(url, in: view)
         return view
     }
@@ -61,12 +64,28 @@ struct LegalWebView: UIViewRepresentable {
     document.head.appendChild(s);
     """
 
-    final class Coordinator {
+    final class Coordinator: NSObject, WKNavigationDelegate {
         var loadedURL: URL?
 
         func load(_ url: URL, in view: WKWebView) {
             loadedURL = url
             view.load(URLRequest(url: url))
+        }
+
+        /// 支持页里的 mailto: 等链接交给系统打开，网页内仍只走 http(s)
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            let scheme = navigationAction.request.url?.scheme?.lowercased()
+            if let scheme, !["http", "https", "about", "file", "data"].contains(scheme),
+               let url = navigationAction.request.url {
+                UIApplication.shared.open(url)
+                decisionHandler(.cancel)
+                return
+            }
+            decisionHandler(.allow)
         }
     }
 }

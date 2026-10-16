@@ -79,13 +79,14 @@ struct RootTabView: View {
         }
         // 换语言后重建界面，让 L() 算出的文案也刷新；showSettings 保留，会停在设置页
         .id(settings.languageRaw)
-        .environment(\.locale, settings.language.locale)
         .sheet(isPresented: $showCreate) {
             CreateChoiceSheet()
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
         .iCloudRequiredAlert(isPresented: $showICloudHint)
+        // 放在 sheet / alert 之后，弹出层才会继承所选语言
+        .environment(\.locale, settings.language.locale)
         .environmentObject(settings)
         .preferredColorScheme(settings.preferredColorScheme)
         .saveToast()

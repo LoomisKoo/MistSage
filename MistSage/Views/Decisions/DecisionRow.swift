@@ -13,17 +13,8 @@ struct DecisionRow: View {
     }
 
     var body: some View {
-        SoftPanel(padding: 16) {
-            HStack(spacing: 14) {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(toneSoft)
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        Image(systemName: record.kind.symbol)
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(tone)
-                    )
-
+        SoftPanel(padding: 14) {
+            HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(record.title)
                         .font(.body.weight(.semibold))
@@ -31,12 +22,11 @@ struct DecisionRow: View {
                         .multilineTextAlignment(.leading)
 
                     HStack(spacing: 8) {
-                        Text(record.kind.localizedName)
-                            .font(.caption.weight(.semibold))
+                        Image(systemName: record.kind.symbol)
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(tone)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(toneSoft))
+
+                        MetaTag(text: record.kind.localizedName, fg: tone, bg: toneSoft)
 
                         if record.money > 0 {
                             Text("\(record.kind.moneyLabel) \(Theme.money(record.money))")
@@ -45,7 +35,7 @@ struct DecisionRow: View {
                                 .monospacedDigit()
                         }
                         if record.minutes > 0 {
-                            Text("\(record.minutes) 分")
+                            Text(Theme.duration(minutes: record.minutes))
                                 .font(.caption)
                                 .foregroundStyle(Theme.muted)
                         }
@@ -57,6 +47,7 @@ struct DecisionRow: View {
                             .foregroundStyle(Theme.muted)
                     }
                 }
+                .padding(.vertical, 4)
                 Spacer(minLength: 0)
             }
         }

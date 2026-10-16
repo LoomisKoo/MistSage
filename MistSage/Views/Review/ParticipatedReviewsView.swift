@@ -47,7 +47,7 @@ struct ParticipatedReviewsView: View {
                                                     .background(Capsule().fill(Theme.accent))
                                             }
                                             Spacer()
-                                            Text(pair.vote.suggestion.localizedName)
+                                            Text(pair.vote.suggestion.shortName)
                                                 .font(.caption.weight(.bold))
                                                 .foregroundStyle(Theme.accentDeep)
                                                 .padding(.horizontal, 8)

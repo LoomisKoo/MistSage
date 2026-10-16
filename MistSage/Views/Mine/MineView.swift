@@ -10,7 +10,7 @@ struct MineView: View {
     @ObservedObject private var cloud = CloudSync.shared
     @State private var showEditProfile = false
 
-    /// 本月：已决里「省下」的记录 + 征求建议里裁定「不做」的金额与时间
+    /// 本月：已决里「省下」的记录 + 征求建议里拍板「不做」的金额与时间
     private var monthSaved: Double {
         let cal = Calendar.current
         let now = Date()
@@ -106,7 +106,7 @@ struct MineView: View {
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     summaryCard("进行中", "\(openCount)", L("还没做最终决定"))
-                    summaryCard("已裁定", "\(closedReviewCount)", L("征求建议已有结论"))
+                    summaryCard("已拍板", "\(closedReviewCount)", L("征求建议已有结论"))
                     summaryCard("直接记录", "\(decisions.count)", L("决策里「已决」的笔数"))
                     summaryCard(
                         "资产",

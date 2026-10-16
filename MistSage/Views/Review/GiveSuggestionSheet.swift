@@ -10,14 +10,15 @@ struct GiveSuggestionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var settings: AppSettings
 
-    @State private var draftSuggestion: ReviewSuggestion = .wait
+    @State private var draftSuggestion: ReviewSuggestion?
     @State private var draftComment = ""
     @State private var draftNickname = ""
 
     private var isEditing: Bool { existingVote != nil }
     private var needsNickname: Bool { !settings.hasNickname }
     private var canSave: Bool {
-        !needsNickname || !draftNickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        draftSuggestion != nil
+            && !needsNickname || !draftNickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
@@ -29,9 +30,9 @@ struct GiveSuggestionSheet: View {
                         .foregroundStyle(Theme.inkSoft)
 
                     HStack(spacing: 8) {
-                        ForEach(ReviewSuggestion.allCases) { s in
+                        ForEach(ReviewSuggestion.selectable) { s in
                             Button { draftSuggestion = s } label: {
-                                Text(s.localizedName)
+                                Text(s.shortName)
                                     .font(.caption.weight(.semibold))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
@@ -83,7 +84,9 @@ struct GiveSuggestionSheet: View {
                     return
                 }
                 if let existingVote {
-                    draftSuggestion = existingVote.suggestion
+                    if ReviewSuggestion.selectable.contains(existingVote.suggestion) {
+                        draftSuggestion = existingVote.suggestion
+                    }
                     draftComment = existingVote.comment
                 }
             }
@@ -91,7 +94,7 @@ struct GiveSuggestionSheet: View {
     }
 
     private func save() {
-        guard !item.isClosed else {
+        guard !item.isClosed, let draftSuggestion else {
             dismiss()
             return
         }

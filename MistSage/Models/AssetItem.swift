@@ -4,19 +4,56 @@ import UIKit
 
 enum AssetKind: String, Codable, CaseIterable, Identifiable {
     case consumable = "消耗品"
+    case beauty = "美妆个护"
+    case digital = "数码电子"
+    case appliance = "家用电器"
+    case furniture = "家居家具"
+    case clothing = "服饰鞋包"
+    case sports = "运动户外"
+    case culture = "书籍文娱"
+    case vehicle = "交通出行"
     case durable = "耐用品"
     case keep = "收藏纪念"
     case other = "其他"
 
     var id: String { rawValue }
 
-    /// 只有消耗品需要「存量」
-    var tracksStock: Bool { self == .consumable }
+    /// 会用完的才需要「存量」
+    var tracksStock: Bool { self == .consumable || self == .beauty }
+
+    /// 收藏纪念不记使用、不提示闲置
+    var tracksUsage: Bool { self != .keep }
+
+    /// 列表 / 详情统一按类型显示图标，不再让用户自己选
+    var symbol: String {
+        switch self {
+        case .consumable: return "cart.fill"
+        case .beauty: return "drop.fill"
+        case .digital: return "iphone"
+        case .appliance: return "washer.fill"
+        case .furniture: return "sofa.fill"
+        case .clothing: return "tshirt.fill"
+        case .sports: return "dumbbell.fill"
+        case .culture: return "book.fill"
+        case .vehicle: return "car.fill"
+        case .durable: return "shippingbox.fill"
+        case .keep: return "gift.fill"
+        case .other: return "cube.fill"
+        }
+    }
 
     var hint: String {
         switch self {
         case .consumable: return L("日用品、食品等会用完的东西，可记存量。")
-        case .durable: return L("电器、家具、衣服等耐用物，关注使用与闲置。")
+        case .beauty: return L("护肤、彩妆、洗护等，可记存量。")
+        case .digital: return L("手机、电脑、相机、耳机等。")
+        case .appliance: return L("冰箱、洗衣机、厨房小家电等。")
+        case .furniture: return L("家具、床品、收纳、装饰等。")
+        case .clothing: return L("衣服、鞋子、包、配饰等。")
+        case .sports: return L("健身器材、球具、露营装备等。")
+        case .culture: return L("书、乐器、游戏、文具等。")
+        case .vehicle: return L("自行车、电动车、汽车及配件等。")
+        case .durable: return L("其他能长期用的东西，关注使用与闲置。")
         case .keep: return L("纪念品、藏品等，一般不看存量。")
         case .other: return L("不好归类时选这个。")
         }
@@ -72,7 +109,7 @@ final class AssetItem {
         useCount: Int = 0,
         status: AssetStockStatus = .plenty,
         kind: AssetKind = .durable,
-        iconName: String = AssetIconOption.cube.rawValue,
+        iconName: String = "",
         isPublic: Bool = false,
         purchasedAt: Date = .now,
         lastUsedAt: Date? = nil,
@@ -105,9 +142,8 @@ final class AssetItem {
         set { kindRaw = newValue.rawValue }
     }
 
-    var resolvedIcon: String {
-        iconName.isEmpty ? AssetIconOption.cube.rawValue : iconName
-    }
+    /// 图标跟类型走；iconName 只是历史字段，不再使用
+    var resolvedIcon: String { kind.symbol }
 
     var hasPhoto: Bool { !photoFileNames.isEmpty }
 
@@ -131,6 +167,7 @@ final class AssetItem {
     }
 
     var isIdle: Bool {
+        guard kind.tracksUsage else { return false }
         if useCount == 0 { return idleDays >= 30 }
         return idleDays >= 60
     }
@@ -153,6 +190,9 @@ final class AssetItem {
     }
 
     var utilizationHint: String {
+        if !kind.tracksUsage {
+            return L("纪念收藏，不用记使用，留着就好。")
+        }
         if useCount <= 0 {
             return L("还没记过使用。点「用了一次」后，可算单次成本和平均使用间隔。")
         }

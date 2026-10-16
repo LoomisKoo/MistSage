@@ -19,70 +19,56 @@ struct DecisionDetailView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 22) {
-                SoftPanel(padding: 18) {
-                    HStack(spacing: 14) {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(toneSoft)
-                            .frame(width: 56, height: 56)
-                            .overlay(
-                                Image(systemName: record.kind.symbol)
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(tone)
-                            )
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(record.title)
+                        .font(.system(size: 28, weight: .bold, design: .serif))
+                        .foregroundStyle(Theme.ink)
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(record.title)
-                                .font(.system(.title3, design: .serif).weight(.semibold))
-                                .foregroundStyle(Theme.ink)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            HStack(spacing: 8) {
-                                Text(record.kind.localizedName)
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(tone)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Capsule().fill(toneSoft))
-                                Text(record.topic.localizedName)
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(Theme.inkSoft)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Capsule().fill(Theme.paperDeep))
-                            }
-                        }
-                        Spacer(minLength: 0)
+                    HStack(spacing: 8) {
+                        tag(record.kind.localizedName, fg: tone, bg: toneSoft)
+                        tag(record.topic.localizedName, fg: Theme.inkSoft, bg: Theme.paperDeep)
+                        Spacer(minLength: 8)
+                        Text(record.createdAt.appFormatted(date: .abbreviated, time: .shortened))
+                            .font(.caption)
+                            .foregroundStyle(Theme.muted)
+                            .lineLimit(1)
                     }
                 }
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    if record.money > 0 {
-                        stat(LocalizedStringKey(record.kind.moneyLabel), Theme.money(record.money))
-                    }
-                    if record.minutes > 0 {
-                        stat("时间", L("\(record.minutes) 分"))
-                        if settings.hourlyRate > 0 {
-                            stat("时间代价", Theme.money(record.timeCost(hourlyRate: settings.hourlyRate)))
+                if record.money > 0 || record.minutes > 0 {
+                    HStack(alignment: .top, spacing: 0) {
+                        if record.money > 0 {
+                            stat(LocalizedStringKey(record.kind.moneyLabel), Theme.money(record.money))
+                        }
+                        if record.minutes > 0 {
+                            stat("耗时", Theme.duration(minutes: record.minutes))
+                            if settings.hourlyRate > 0 {
+                                stat("时间代价", Theme.money(record.timeCost(hourlyRate: settings.hourlyRate)))
+                            }
                         }
                     }
-                    stat("记录时间", record.createdAt.appFormatted(date: .abbreviated, time: .shortened))
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Theme.surface)
+                    )
                 }
 
                 if !record.note.isEmpty {
-                    SoftPanel(padding: 14) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("备注")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(Theme.muted)
-                            Text(record.note)
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.inkSoft)
-                        }
-                    }
+                    Text(record.note)
+                        .font(.system(size: 17))
+                        .foregroundStyle(Theme.inkSoft)
+                        .lineSpacing(7)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(20)
+            .padding(.horizontal, 22)
+            .padding(.top, 8)
+            .padding(.bottom, 32)
         }
         .background(AtmosphereBackground())
         .navigationTitle("已决详情")
@@ -93,9 +79,11 @@ struct DecisionDetailView: View {
                     Button("编辑") { showEdit = true }
                     Button("删除", role: .destructive) { showDeleteConfirm = true }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.body.weight(.semibold))
+                    Image(systemName: "ellipsis")
+                        .font(.body.weight(.bold))
                         .foregroundStyle(Theme.ink)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
                 }
             }
         }
@@ -119,19 +107,22 @@ struct DecisionDetailView: View {
         }
     }
 
+    private func tag(_ text: String, fg: Color, bg: Color) -> some View {
+        MetaTag(text: text, fg: fg, bg: bg)
+    }
+
     private func stat(_ title: LocalizedStringKey, _ value: String) -> some View {
-        SoftPanel(padding: 14) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.muted)
-                Text(value)
-                    .font(.system(.title3, design: .rounded).weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                    .monospacedDigit()
-                    .minimumScaleFactor(0.8)
-                    .lineLimit(2)
-            }
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(Theme.muted)
+            Text(value)
+                .font(.system(.title3, design: .rounded).weight(.semibold))
+                .foregroundStyle(Theme.ink)
+                .monospacedDigit()
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

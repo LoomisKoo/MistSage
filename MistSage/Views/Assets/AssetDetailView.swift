@@ -59,7 +59,7 @@ struct AssetDetailView: View {
 
                 SoftPanel(padding: 14) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("使用情况")
+                        Text(item.kind.tracksUsage ? LocalizedStringKey("使用情况") : LocalizedStringKey("收藏"))
                             .font(.caption.weight(.bold))
                             .foregroundStyle(Theme.muted)
                         Text(item.utilizationHint)
@@ -72,15 +72,19 @@ struct AssetDetailView: View {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     stat("类型", item.kind.localizedName)
                     stat("价值", Theme.money(item.price))
-                    if let cpu = item.costPerUse {
-                        stat("单次成本", Theme.money(cpu))
-                    }
-                    if let avg = item.avgDaysPerUse {
-                        stat("平均间隔", String(format: L("%.0f 天/次"), avg))
+                    if item.kind.tracksUsage {
+                        if let cpu = item.costPerUse {
+                            stat("单次成本", Theme.money(cpu))
+                        }
+                        if let avg = item.avgDaysPerUse {
+                            stat("平均间隔", String(format: L("%.0f 天/次"), avg))
+                        } else {
+                            stat("累计使用", L("\(item.useCount) 次"))
+                        }
+                        stat("闲置", L("\(item.idleDays) 天"))
                     } else {
-                        stat("累计使用", L("\(item.useCount) 次"))
+                        stat("已收藏", L("\(item.ownedDays) 天"))
                     }
-                    stat("闲置", L("\(item.idleDays) 天"))
                     if item.kind.tracksStock {
                         stat("存量", item.status.localizedName)
                     }
@@ -118,14 +122,13 @@ struct AssetDetailView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if !readOnly {
+            if !readOnly, item.kind.tracksUsage {
                 PrimaryButton(title: "用了一次") {
                     item.markUsed()
                 }
                 .sensoryFeedback(.impact(weight: .light), trigger: item.useCount)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 12)
-                .background(.ultraThinMaterial)
             }
         }
         .confirmationDialog("删除这个资产？", isPresented: $showDeleteConfirm, titleVisibility: .visible) {

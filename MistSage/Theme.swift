@@ -66,8 +66,28 @@ enum Theme {
     static let pressDuration: Double = 0.14
     static let enterDuration: Double = 0.22
 
+    /// 币种跟地区走（国内人民币，其余美元），与界面语言无关
+    static var usesCNY: Bool { AppRegion.current == .cn }
+
+    static var currencyUnit: String { usesCNY ? L("元") : L("美元") }
+
+    /// 不足 1 小时只显示分钟
+    static func duration(minutes: Int) -> String {
+        let h = minutes / 60, m = minutes % 60
+        if h == 0 { return L("\(m)分") }
+        if m == 0 { return L("\(h)小时") }
+        return L("\(h)小时\(m)分")
+    }
+
+    /// 倒计时：超过 1 天显示「x天x小时」
+    static func remaining(minutes: Int) -> String {
+        guard minutes >= 24 * 60 else { return duration(minutes: minutes) }
+        let d = minutes / (24 * 60), h = minutes % (24 * 60) / 60
+        return h == 0 ? L("\(d)天") : L("\(d)天\(h)小时")
+    }
+
     static func money(_ value: Double) -> String {
-        String(format: "¥%.2f", value)
+        String(format: usesCNY ? "¥%.2f" : "$%.2f", value)
     }
 }
 
